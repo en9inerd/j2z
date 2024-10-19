@@ -60,8 +60,6 @@ func main() {
 
 		_ = tomlData
 
-		// fmt.Println(string(tomlData))
-
 		// Write the TOML front matter to the Zola directory
 		// zolaFile := filepath.Join(args["zolaDir"], "content", filepath.Base(file))
 		// err = os.WriteFile(zolaFile, tomlData, 0644)
@@ -80,7 +78,7 @@ func getAndCheckArgs() map[string]string {
 	var args = os.Args[1:]
 	if len(args) != 2 {
 		fmt.Println(
-			"No arguments provided" + "\n\n" + "Usage: j2z [jekyll dir] [zola dir]",
+			"No arguments provided" + "\n\n" + "Usage: j2z <jekyll-dir> <zola-dir>",
 		)
 		os.Exit(1)
 	} else {
