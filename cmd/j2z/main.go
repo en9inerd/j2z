@@ -1,7 +1,9 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -11,6 +13,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"gopkg.in/yaml.v3"
 )
+
+var logger *log.Logger = log.New(os.Stdout, "j2z: ", 0)
 
 // List of root front matter keys in Zola
 var rootFrontMatterKeys = []string{
@@ -29,31 +33,54 @@ var rootFrontMatterKeys = []string{
 	"in_search_index",
 }
 
-func main() {
-	args := getAndCheckArgs()
+// List of date formats to try when parsing the "date" field
+var dateFormats = []string{
+	"2006-01-02 15:04:05 -0700",
+	"2006-01-02 15:04:05",
+	"2006-01-02 15:04",
+	"2006-01-02",
+}
 
-	mdFiles, err := getMarkdownFiles(args["jekyllDir"])
+func main() {
+	// Define the command-line flags (named arguments)
+	jekyllDir := flag.String("jekyllDir", "", "Path to the Jekyll directory")
+	zolaDir := flag.String("zolaDir", "", "Path to the Zola directory")
+	timezone := flag.String("timezone", "", "Optional timezone (e.g., 'America/New_York'). Defaults to local timezone.")
+	flag.Parse()
+
+	// Validate required arguments
+	if *jekyllDir == "" || *zolaDir == "" {
+		logger.Println("Error: Both --jekyllDir and --zolaDir must be provided")
+		flag.Usage() // Show usage information
+		os.Exit(1)
+	}
+
+	// Get the user-specified timezone or default to the local timezone
+	tz := getTimeZone(*timezone)
+
+	mdFiles, err := getMarkdownFiles(jekyllDir)
 	if err != nil {
-		fmt.Println("Error getting markdown files")
+		logger.Println("Error getting markdown files")
 		os.Exit(1)
 	}
 
 	for _, file := range mdFiles {
 		content, err := os.ReadFile(file)
 		if err != nil {
-			fmt.Println("Error reading file: " + file)
+			logger.Println("Error reading file: " + file)
 			os.Exit(1)
 		}
 
 		frontMatter := extractFrontMatter(string(content))
 		if frontMatter == nil {
-			fmt.Println("No front matter found in: " + file)
+			logger.Println("No front matter found in: " + file)
 			continue
 		}
 
-		tomlData, err := convertFrontMatterToTOML(*frontMatter)
+		tomlData, err := convertFrontMatterToTOML(frontMatter, tz)
 		if err != nil {
-			fmt.Println("Error converting front matter to TOML: " + file)
+			// should display the error message with the file name and err.Error()
+			logger.Println("Error: " + file + " - " + err.Error())
 		}
 
 		fmt.Println(string(tomlData))
@@ -65,48 +92,16 @@ func main() {
 		// err = os.WriteFile(zolaFile, tomlData, 0644)
 
 		// if err != nil {
-		// 	fmt.Println("Error writing file: " + zolaFile)
+		// 	logger.Println("Error writing file: " + zolaFile)
 		// }
 	}
 }
 
-// Get and check the command line arguments
-func getAndCheckArgs() map[string]string {
-	var jekyllDir string
-	var zolaDir string
-
-	var args = os.Args[1:]
-	if len(args) != 2 {
-		fmt.Println(
-			"No arguments provided" + "\n\n" + "Usage: j2z <jekyll-dir> <zola-dir>",
-		)
-		os.Exit(1)
-	} else {
-		jekyllDir = args[0]
-		zolaDir = args[1]
-	}
-
-	if _, err := os.Stat(jekyllDir); os.IsNotExist(err) {
-		fmt.Println("Jekyll directory does not exist")
-		os.Exit(1)
-	}
-
-	if _, err := os.Stat(zolaDir); os.IsNotExist(err) {
-		fmt.Println("Zola directory does not exist")
-		os.Exit(1)
-	}
-
-	return map[string]string{
-		"jekyllDir": jekyllDir,
-		"zolaDir":   zolaDir,
-	}
-}
-
 // Get all markdown files in the Jekyll directory
-func getMarkdownFiles(jekyllDir string) ([]string, error) {
+func getMarkdownFiles(jekyllDir *string) ([]string, error) {
 	var files []string
 
-	dirs, err := os.ReadDir(jekyllDir)
+	dirs, err := os.ReadDir(*jekyllDir)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +109,7 @@ func getMarkdownFiles(jekyllDir string) ([]string, error) {
 	// Walk through all directories starting with an underscore
 	for _, dir := range dirs {
 		if dir.IsDir() && dir.Name()[0] == '_' {
-			err := filepath.Walk(filepath.Join(jekyllDir, dir.Name()), func(path string, info os.FileInfo, err error) error {
+			err := filepath.Walk(filepath.Join(*jekyllDir, dir.Name()), func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
@@ -148,18 +143,32 @@ func extractFrontMatter(content string) *string {
 }
 
 // Converts YAML front matter to TOML format
-func convertFrontMatterToTOML(frontMatter string) ([]byte, error) {
+func convertFrontMatterToTOML(frontMatter *string, loc *time.Location) ([]byte, error) {
 	var data map[string]interface{}
-	err := yaml.Unmarshal([]byte(frontMatter), &data)
+	err := yaml.Unmarshal([]byte(*frontMatter), &data)
 	if err != nil {
 		return nil, err
 	}
 
 	// Parse "date" field if it exists and is valid
 	if dateStr, ok := data["date"].(string); ok {
-		data["date"], err = time.Parse("2006-01-02 15:04", dateStr)
+		var t time.Time
+		var err error
+
+		for _, format := range dateFormats {
+			if t, err = time.ParseInLocation(format, dateStr, loc); err == nil {
+				data["date"] = t
+				break
+			}
+
+			if t, err = time.Parse(format, dateStr); err == nil {
+				data["date"] = t
+				break
+			}
+		}
+
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("invalid date format in front matter: %s", dateStr)
 		}
 	}
 
@@ -186,4 +195,17 @@ func convertFrontMatterToTOML(frontMatter string) ([]byte, error) {
 	}
 
 	return tomlData, nil
+}
+
+// Get the timezone, defaulting to local timezone if not provided
+func getTimeZone(tzName string) *time.Location {
+	if tzName != "" {
+		tz, err := time.LoadLocation(tzName)
+		if err != nil {
+			logger.Println("Invalid timezone specified, using local timezone instead.")
+			return time.Local
+		}
+		return tz
+	}
+	return time.Local
 }
