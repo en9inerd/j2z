@@ -194,6 +194,10 @@ func convertFrontMatterToTOML(frontMatter *string, loc *time.Location) ([]byte, 
 		return nil, err
 	}
 
+	// Post-process the TOML data to remove identation
+	re := regexp.MustCompile(`(?m)^[ \t]+`)
+	tomlData = re.ReplaceAll(tomlData, []byte(""))
+
 	return tomlData, nil
 }
 
