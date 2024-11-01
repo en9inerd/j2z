@@ -6,9 +6,14 @@ Current status: **Early development**
 
 The goal of this project is to provide a simple tool to convert a Jekyll markdown posts to Zola markdown posts.
 
+Usage:
+
 ```sh
-j2z <input> <output>
+j2z --jekyllDir <path> --zolaDir <path> [--timezone <timezone>] [--taxomonies <taxomonies>]
 ```
 
-- `<input>` is the path to the Jekyll directory with `_config.yml` file.
-- `<output>` is the path to the Zola directory.
+Where:
+- `--jekyllDir` is the path to the Jekyll directory containing the `_config.yml` file.
+- `--zolaDir` is the path to the Zola directory containing the `content` directory.
+- `--timezone` (optional) is the timezone to use for the conversion. If not provided, the timezone will be taken from local machine. Example: `America/New_York`.
+- `--taxomonies` (optional) is the taxomonies to use for the conversion. Example: `tags,categories`.
