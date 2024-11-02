@@ -39,8 +39,8 @@ var dateFormats = []string{
 type MarkdownFile interface {
 	Load() error
 	ProcessFrontMatter() error
-	ConvertToTOML(tz *time.Location) error
-	Save(jekyllDir *string, zolaDir *string) error
+	ConvertToTOML(args *Args) error
+	Save(args *Args) error
 }
 
 type JekyllMarkdownFile struct {
@@ -71,7 +71,7 @@ func (f *JekyllMarkdownFile) ProcessFrontMatter() error {
 	return nil
 }
 
-func (f *JekyllMarkdownFile) ConvertToTOML(tz *time.Location) error {
+func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
 	var data map[string]interface{}
 	err := yaml.Unmarshal(f.FrontMatter, &data)
 	if err != nil {
@@ -84,7 +84,7 @@ func (f *JekyllMarkdownFile) ConvertToTOML(tz *time.Location) error {
 		var err error
 
 		for _, format := range dateFormats {
-			if t, err = time.ParseInLocation(format, dateStr, tz); err == nil {
+			if t, err = time.ParseInLocation(format, dateStr, args.tz); err == nil {
 				data["date"] = t
 				break
 			}
@@ -102,7 +102,15 @@ func (f *JekyllMarkdownFile) ConvertToTOML(tz *time.Location) error {
 
 	// Separate root keys from non-root keys
 	extra := make(map[string]interface{})
+	taxonomies := make(map[string]interface{})
 	for key, value := range data {
+		// Check if key is taxonomy
+		if slices.Contains(args.taxonomies, key) {
+			taxonomies[key] = value
+			delete(data, key) // Remove the taxonomy key from the original map
+			continue
+		}
+
 		// Check if the key is not a root key
 		if !slices.Contains(rootFrontMatterKeys, key) {
 			extra[key] = value
@@ -113,6 +121,11 @@ func (f *JekyllMarkdownFile) ConvertToTOML(tz *time.Location) error {
 	// Add the "extra" section if there are any non-root keys
 	if len(extra) > 0 {
 		data["extra"] = extra
+	}
+
+	// Add the "taxonomies" section if there are any taxonomies
+	if len(taxonomies) > 0 {
+		data["taxonomies"] = taxonomies
 	}
 
 	// Marshal the data into TOML format
@@ -128,13 +141,24 @@ func (f *JekyllMarkdownFile) ConvertToTOML(tz *time.Location) error {
 	return nil
 }
 
-func (f *JekyllMarkdownFile) Save(jekyllDir *string, zolaDir *string) error {
-	outputPath := getOutputFilePath(f.Path, jekyllDir, zolaDir)
-
+func (f *JekyllMarkdownFile) Save(args *Args) error {
+	outputFilePath, outputDirPath, err := getOutputPaths(f.Path, &args.jekyllDir, &args.zolaDir)
+	if err != nil {
+		return err
+	}
 	combined := combineFrontMatterAndContent(f.FrontMatter, f.Content)
-	_ = combined
 
-	fmt.Println(outputPath)
+	if _, err := os.Stat(outputDirPath); os.IsNotExist(err) {
+		err := os.MkdirAll(outputDirPath, 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = os.WriteFile(outputFilePath, []byte(combined), 0644)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

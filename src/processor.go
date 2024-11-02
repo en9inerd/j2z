@@ -1,12 +1,8 @@
 package main
 
-import "time"
-
 func processMarkdownFile(
 	file MarkdownFile,
-	jekyllDir *string,
-	zolaDir *string,
-	tz *time.Location,
+	args *Args,
 ) error {
 	if err := file.Load(); err != nil {
 		return err
@@ -14,8 +10,8 @@ func processMarkdownFile(
 	if err := file.ProcessFrontMatter(); err != nil {
 		return err
 	}
-	if err := file.ConvertToTOML(tz); err != nil {
+	if err := file.ConvertToTOML(args); err != nil {
 		return err
 	}
-	return file.Save(jekyllDir, zolaDir)
+	return file.Save(args)
 }

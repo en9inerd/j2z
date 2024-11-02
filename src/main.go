@@ -4,32 +4,55 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strings"
+	"time"
 )
+
+// struct to hold all arguments
+type Args struct {
+	jekyllDir  string
+	zolaDir    string
+	taxonomies []string
+	tz         *time.Location
+}
 
 var logger *log.Logger = log.New(os.Stdout, "j2z: ", 0)
 
+func splitFlag(flagValue string) []string {
+	if flagValue == "" {
+		return []string{}
+	}
+	return strings.Split(flagValue, ",")
+}
+
 func main() {
-	jekyllDir := flag.String("jekyllDir", "", "Path to the Jekyll directory")
-	zolaDir := flag.String("zolaDir", "", "Path to the Zola directory")
-	tzName := flag.String("timezone", "", "Optional timezone")
+	jekyllDirFlag := flag.String("jekyllDir", "", "Path to the Jekyll directory")
+	zolaDirFlag := flag.String("zolaDir", "", "Path to the Zola directory")
+	taxonomiesFlag := flag.String("taxonomies", "tags,categories", "Optional comma-separated list of taxonomies")
+	tzNameFlag := flag.String("tz", "", "Optional timezone name")
 	flag.Parse()
 
-	if *jekyllDir == "" || *zolaDir == "" {
+	cliArgs := Args{
+		jekyllDir:  *jekyllDirFlag,
+		zolaDir:    *zolaDirFlag,
+		taxonomies: splitFlag(*taxonomiesFlag),
+		tz:         getTimeZone(*tzNameFlag),
+	}
+
+	if cliArgs.jekyllDir == "" || cliArgs.zolaDir == "" {
 		logger.Println("Error: Both --jekyllDir and --zolaDir must be provided")
 		flag.Usage() // Show usage information
 		os.Exit(1)
 	}
 
-	tz := getTimeZone(*tzName)
-
-	inputMdFiles, err := getMarkdownFiles(jekyllDir)
+	inputMdFiles, err := getMarkdownFiles(&cliArgs)
 	if err != nil {
 		logger.Fatalf("Failed to get markdown files: %v", err)
 	}
 
 	for _, file := range inputMdFiles {
 		mdFile := &JekyllMarkdownFile{Path: file}
-		if err := processMarkdownFile(mdFile, jekyllDir, zolaDir, tz); err != nil {
+		if err := processMarkdownFile(mdFile, &cliArgs); err != nil {
 			logger.Printf("Failed to process file %s: %v", file, err)
 		}
 	}
