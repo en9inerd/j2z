@@ -16,4 +16,9 @@ func combineFrontMatterAndContent(tomlData []byte, content []byte) string {
 }
 
 func contentProcessing(content *[]byte) {
+	// Correct the <!--more--> tag
+	re := regexp.MustCompile(`(?i)<!--\s*more\s*-->`)
+	if re.Match(*content) {
+		*content = re.ReplaceAll(*content, []byte("\n<!--more-->"))
+	}
 }
