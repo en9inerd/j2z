@@ -14,6 +14,7 @@ type Args struct {
 	zolaDir    string
 	taxonomies []string
 	tz         *time.Location
+	aliases    bool
 }
 
 var logger *log.Logger = log.New(os.Stdout, "j2z: ", 0)
@@ -30,12 +31,14 @@ func main() {
 	zolaDirFlag := flag.String("zolaDir", "", "Path to the Zola directory")
 	taxonomiesFlag := flag.String("taxonomies", "tags,categories", "Optional comma-separated list of taxonomies")
 	tzNameFlag := flag.String("tz", "", "Optional timezone name")
+	alisesFlag := flag.Bool("aliases", true, "Optional flag to enable aliases in the front matter")
 	flag.Parse()
 
 	cliArgs := Args{
 		jekyllDir:  *jekyllDirFlag,
 		zolaDir:    *zolaDirFlag,
 		taxonomies: splitFlag(*taxonomiesFlag),
+		aliases:    *alisesFlag,
 		tz:         getTimeZone(*tzNameFlag),
 	}
 

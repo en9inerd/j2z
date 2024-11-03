@@ -21,4 +21,6 @@ func contentProcessing(content *[]byte) {
 	if re.Match(*content) {
 		*content = re.ReplaceAll(*content, []byte("\n<!--more-->"))
 	}
+
+	// TODO: logic to process relative urls/paths in markdown content
 }

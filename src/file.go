@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 	"regexp"
 	"slices"
 	"time"
@@ -76,6 +77,21 @@ func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
 	err := yaml.Unmarshal(f.FrontMatter, &data)
 	if err != nil {
 		return err
+	}
+
+	// Add alias if the flag is set
+	if args.aliases {
+		fileName := path.Base(f.Path)
+
+		re := regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})-(.*)\.md`)
+		match := re.FindStringSubmatch(fileName)
+
+		if len(match) < 5 {
+			return fmt.Errorf("invalid file name format: %s", fileName)
+		}
+
+		alias := fmt.Sprintf("%s/%s/%s/%s", match[1], match[2], match[3], match[4])
+		data["aliases"] = []string{alias}
 	}
 
 	// Parse "date" field if it exists and is valid
