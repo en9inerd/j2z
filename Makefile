@@ -19,5 +19,3 @@ clean:
 	rm -rf $(DIST_DIR)
 
 .PHONY: all build clean
-
-# End of file
