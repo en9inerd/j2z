@@ -26,13 +26,21 @@ func splitFlag(flagValue string) []string {
 	return strings.Split(flagValue, ",")
 }
 
+var Version = "dev"
+
 func main() {
 	jekyllDirFlag := flag.String("jekyllDir", "", "Path to the Jekyll directory")
 	zolaDirFlag := flag.String("zolaDir", "", "Path to the Zola directory")
 	taxonomiesFlag := flag.String("taxonomies", "tags,categories", "Optional comma-separated list of taxonomies")
 	tzNameFlag := flag.String("tz", "", "Optional timezone name")
-	alisesFlag := flag.Bool("aliases", true, "Optional flag to enable aliases in the front matter")
+	alisesFlag := flag.Bool("aliases", false, "Optional flag to enable aliases in the front matter")
+	versionFlag := flag.Bool("version", false, "Print the version number")
 	flag.Parse()
+
+	if *versionFlag {
+		logger.Printf("version %s\n", Version)
+		os.Exit(0)
+	}
 
 	cliArgs := Args{
 		jekyllDir:  *jekyllDirFlag,
