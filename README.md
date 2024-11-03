@@ -1,7 +1,5 @@
 # j2z
 
-## Expected usage and functionality
-
 The goal of this project is to provide a simple tool to convert a Jekyll markdown posts to Zola markdown posts.
 
 ## Usage:
