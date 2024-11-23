@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -61,10 +62,18 @@ func main() {
 		logger.Fatalf("Failed to get markdown files: %v", err)
 	}
 
+	var wg sync.WaitGroup
 	for _, file := range inputMdFiles {
-		mdFile := &JekyllMarkdownFile{Path: file}
-		if err := processMarkdownFile(mdFile, &cliArgs); err != nil {
-			logger.Printf("Failed to process file %s: %v", file, err)
-		}
+		wg.Add(1)
+		go func(file string) {
+			defer wg.Done()
+
+			mdFile := &JekyllMarkdownFile{Path: file}
+			if err := processMarkdownFile(mdFile, &cliArgs); err != nil {
+				logger.Printf("Failed to process file %s: %v", file, err)
+			}
+		}(file)
 	}
+
+	wg.Wait()
 }
