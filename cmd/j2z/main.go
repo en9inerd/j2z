@@ -2,23 +2,16 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
 	"strings"
 	"sync"
-	"time"
+
+	"github.com/en9inerd/j2z/internal/args"
+	fl "github.com/en9inerd/j2z/internal/file"
+	"github.com/en9inerd/j2z/internal/log"
+	"github.com/en9inerd/j2z/internal/processor"
+	"github.com/en9inerd/j2z/internal/timezone"
 )
-
-// struct to hold all arguments
-type Args struct {
-	jekyllDir  string
-	zolaDir    string
-	taxonomies []string
-	tz         *time.Location
-	aliases    bool
-}
-
-var logger *log.Logger = log.New(os.Stdout, "j2z: ", 0)
 
 func splitFlag(flagValue string) []string {
 	if flagValue == "" {
@@ -39,27 +32,27 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		logger.Printf("version %s\n", Version)
+		log.Logger.Printf("version %s\n", Version)
 		os.Exit(0)
 	}
 
-	cliArgs := Args{
-		jekyllDir:  *jekyllDirFlag,
-		zolaDir:    *zolaDirFlag,
-		taxonomies: splitFlag(*taxonomiesFlag),
-		aliases:    *alisesFlag,
-		tz:         getTimeZone(*tzNameFlag),
+	cliArgs := args.Args{
+		JekyllDir:  *jekyllDirFlag,
+		ZolaDir:    *zolaDirFlag,
+		Taxonomies: splitFlag(*taxonomiesFlag),
+		Aliases:    *alisesFlag,
+		Tz:         timezone.GetTimeZone(*tzNameFlag),
 	}
 
-	if cliArgs.jekyllDir == "" || cliArgs.zolaDir == "" {
-		logger.Println("Error: Both --jekyllDir and --zolaDir must be provided")
+	if cliArgs.JekyllDir == "" || cliArgs.ZolaDir == "" {
+		log.Logger.Println("Error: Both --jekyllDir and --zolaDir must be provided")
 		flag.Usage() // Show usage information
 		os.Exit(1)
 	}
 
-	inputMdFiles, err := getMarkdownFiles(&cliArgs)
+	inputMdFiles, err := fl.GetMarkdownFiles(&cliArgs)
 	if err != nil {
-		logger.Fatalf("Failed to get markdown files: %v", err)
+		log.Logger.Fatalf("Failed to get markdown files: %v", err)
 	}
 
 	var wg sync.WaitGroup
@@ -68,9 +61,9 @@ func main() {
 		go func(file string) {
 			defer wg.Done()
 
-			mdFile := &JekyllMarkdownFile{Path: file}
-			if err := processMarkdownFile(mdFile, &cliArgs); err != nil {
-				logger.Printf("Failed to process file %s: %v", file, err)
+			mdFile := &fl.JekyllMarkdownFile{Path: file}
+			if err := processor.ProcessMarkdownFile(mdFile, &cliArgs); err != nil {
+				log.Logger.Printf("Failed to process file %s: %v", file, err)
 			}
 		}(file)
 	}

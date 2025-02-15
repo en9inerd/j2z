@@ -18,5 +18,5 @@ do
 
   echo "Building $output with version $VERSION"
   CGO_ENABLED=$CGO_ENABLED GOOS=$GOOS GOARCH=$GOARCH \
-    go build -gcflags="all=-l -B" -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o "$output" ./src
+    go build -gcflags="all=-l -B" -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o "$output" ./cmd/j2z/
 done

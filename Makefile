@@ -9,7 +9,7 @@ BINARY_PATH=$(BUILD_DIR)/$(BINARY_NAME)
 all: build
 
 build:
-	$(GO) build -o $(BINARY_PATH) ./src
+	$(GO) build -o $(BINARY_PATH) ./cmd/j2z/
 
 build-prod:
 	bash scripts/build.sh

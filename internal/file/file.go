@@ -1,4 +1,4 @@
-package main
+package file
 
 import (
 	"fmt"
@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/en9inerd/j2z/internal/args"
+	"github.com/en9inerd/j2z/internal/content"
 	"gopkg.in/yaml.v3"
 )
 
@@ -40,8 +42,8 @@ var dateFormats = []string{
 type MarkdownFile interface {
 	Load() error
 	ProcessFrontMatter() error
-	ConvertToTOML(args *Args) error
-	Save(args *Args) error
+	ConvertToTOML(args *args.Args) error
+	Save(args *args.Args) error
 }
 
 type JekyllMarkdownFile struct {
@@ -72,7 +74,7 @@ func (f *JekyllMarkdownFile) ProcessFrontMatter() error {
 	return nil
 }
 
-func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
+func (f *JekyllMarkdownFile) ConvertToTOML(args *args.Args) error {
 	var data map[string]interface{}
 	err := yaml.Unmarshal(f.FrontMatter, &data)
 	if err != nil {
@@ -80,7 +82,7 @@ func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
 	}
 
 	// Add alias if the flag is set
-	if args.aliases {
+	if args.Aliases {
 		fileName := path.Base(f.Path)
 
 		re := regexp.MustCompile(`(\d{4})-(\d{2})-(\d{2})-(.*)\.md`)
@@ -100,7 +102,7 @@ func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
 		var err error
 
 		for _, format := range dateFormats {
-			if t, err = time.ParseInLocation(format, dateStr, args.tz); err == nil {
+			if t, err = time.ParseInLocation(format, dateStr, args.Tz); err == nil {
 				data["date"] = t
 				break
 			}
@@ -121,7 +123,7 @@ func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
 	taxonomies := make(map[string]interface{})
 	for key, value := range data {
 		// Check if key is taxonomy
-		if slices.Contains(args.taxonomies, key) {
+		if slices.Contains(args.Taxonomies, key) {
 			taxonomies[key] = value
 			delete(data, key) // Remove the taxonomy key from the original map
 			continue
@@ -157,12 +159,12 @@ func (f *JekyllMarkdownFile) ConvertToTOML(args *Args) error {
 	return nil
 }
 
-func (f *JekyllMarkdownFile) Save(args *Args) error {
-	outputFilePath, outputDirPath, err := getOutputPaths(f.Path, &args.jekyllDir, &args.zolaDir)
+func (f *JekyllMarkdownFile) Save(args *args.Args) error {
+	outputFilePath, outputDirPath, err := getOutputPaths(f.Path, &args.JekyllDir, &args.ZolaDir)
 	if err != nil {
 		return err
 	}
-	combined := combineFrontMatterAndContent(f.FrontMatter, f.Content)
+	combined := content.CombineFrontMatterAndContent(f.FrontMatter, f.Content)
 
 	if _, err := os.Stat(outputDirPath); os.IsNotExist(err) {
 		err := os.MkdirAll(outputDirPath, 0755)

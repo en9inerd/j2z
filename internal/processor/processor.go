@@ -1,8 +1,13 @@
-package main
+package processor
 
-func processMarkdownFile(
-	file MarkdownFile,
-	args *Args,
+import (
+	"github.com/en9inerd/j2z/internal/args"
+	"github.com/en9inerd/j2z/internal/file"
+)
+
+func ProcessMarkdownFile(
+	file file.MarkdownFile,
+	args *args.Args,
 ) error {
 	if err := file.Load(); err != nil {
 		return err

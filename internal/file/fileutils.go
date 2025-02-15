@@ -1,16 +1,18 @@
-package main
+package file
 
 import (
 	"os"
 	"path/filepath"
 	"regexp"
+
+	Args "github.com/en9inerd/j2z/internal/args"
 )
 
 // Get all markdown files in the Jekyll directory
-func getMarkdownFiles(args *Args) ([]string, error) {
+func GetMarkdownFiles(args *Args.Args) ([]string, error) {
 	var files []string
 
-	dirs, err := os.ReadDir(args.jekyllDir)
+	dirs, err := os.ReadDir(args.JekyllDir)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +20,7 @@ func getMarkdownFiles(args *Args) ([]string, error) {
 	// Walk through all directories starting with an underscore
 	for _, dir := range dirs {
 		if dir.IsDir() && dir.Name()[0] == '_' {
-			err := filepath.Walk(filepath.Join(args.jekyllDir, dir.Name()), func(path string, info os.FileInfo, err error) error {
+			err := filepath.Walk(filepath.Join(args.JekyllDir, dir.Name()), func(path string, info os.FileInfo, err error) error {
 				if err != nil {
 					return err
 				}
