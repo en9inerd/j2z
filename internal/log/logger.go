@@ -1,8 +1,17 @@
 package log
 
 import (
-	"log"
+	"log/slog"
 	"os"
 )
 
-var Logger *log.Logger = log.New(os.Stdout, "j2z: ", 0)
+// Level is a package-level LevelVar so callers can adjust the log level
+// at runtime (e.g. via --verbose / --quiet flags).
+var Level = new(slog.LevelVar)
+
+func init() {
+	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: Level,
+	})
+	slog.SetDefault(slog.New(handler))
+}

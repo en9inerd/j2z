@@ -4,6 +4,8 @@ CGO_ENABLED=0
 DIST_DIR="dist"
 VERSION=${VERSION:-dev}
 
+mkdir -p "$DIST_DIR"
+
 platforms=("linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64" "windows/amd64" "windows/arm64")
 
 for platform in "${platforms[@]}"
@@ -18,5 +20,5 @@ do
 
   echo "Building $output with version $VERSION"
   CGO_ENABLED=$CGO_ENABLED GOOS=$GOOS GOARCH=$GOARCH \
-    go build -gcflags="all=-l -B" -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o "$output" ./cmd/j2z/
+    go build -gcflags="all=-l -B" -trimpath -ldflags="-s -w -X main.version=$VERSION" -o "$output" ./cmd/j2z/
 done

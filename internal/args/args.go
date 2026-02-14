@@ -1,12 +1,17 @@
 package args
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
-// struct to hold all arguments
 type Args struct {
-	JekyllDir  string
-	ZolaDir    string
-	Taxonomies []string
-	Tz         *time.Location
-	Aliases    bool
+	JekyllDir     string
+	ZolaDir       string
+	Taxonomies    []string
+	ExtraRootKeys []string
+	Tz            *time.Location
+	Aliases       bool
+	DryRun        bool
+	OutputRoot    *os.Root
 }

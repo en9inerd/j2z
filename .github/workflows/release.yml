@@ -5,46 +5,66 @@ on:
     branches:
       - master
 
+permissions:
+  contents: write
+
 jobs:
-  release:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 'stable'
+          go-version: '1.26'
 
-      - name: Run Semantic Release
-        id: release
-        uses: cycjimmy/semantic-release-action@v4
+      - name: Run tests with race detector
+        run: go test -race ./...
+
+      - name: Run tests with goroutine leak detection
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOEXPERIMENT: goroutineleakprofile
+        run: go test ./...
 
-      - name: Get release version
-        if: steps.release.outputs.new_release_published == 'true'
-        run: echo "RELEASE_VERSION=$(echo ${{ steps.release.outputs.new_release_version }})" >> $GITHUB_ENV
+      - name: Vet
+        run: go vet ./...
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+
+      - name: Semantic Release
+        id: semrel
+        uses: go-semantic-release/action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          allow-initial-development-versions: true
 
       - name: Build with version
+        if: steps.semrel.outputs.version != ''
         env:
-          VERSION: ${{ env.RELEASE_VERSION }}
+          VERSION: ${{ steps.semrel.outputs.version }}
         run: bash ./scripts/build.sh
 
       - name: Upload release assets
-        if: steps.release.outputs.new_release_published == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: binaries
-          path: dist/
-
-      - name: Create GitHub Release
-        if: steps.release.outputs.new_release_published == 'true'
+        if: steps.semrel.outputs.version != ''
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          tag_name: "v${{ env.RELEASE_VERSION }}"
+          tag_name: v${{ steps.semrel.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

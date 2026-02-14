@@ -1,44 +1,48 @@
 package file
 
 import (
+	"io/fs"
+	"iter"
 	"os"
 	"path/filepath"
-	"regexp"
-
-	Args "github.com/en9inerd/j2z/internal/args"
 )
 
-// Get all markdown files in the Jekyll directory
-func GetMarkdownFiles(args *Args.Args) ([]string, error) {
-	var files []string
+// MarkdownFiles returns an iterator that lazily yields markdown file paths
+// found in underscore-prefixed subdirectories of the given directory.
+// Processing can start before the full directory walk completes.
+func MarkdownFiles(dir string) iter.Seq2[string, error] {
+	return func(yield func(string, error) bool) {
+		dirs, err := os.ReadDir(dir)
+		if err != nil {
+			yield("", err)
+			return
+		}
 
-	dirs, err := os.ReadDir(args.JekyllDir)
-	if err != nil {
-		return nil, err
-	}
-
-	// Walk through all directories starting with an underscore
-	for _, dir := range dirs {
-		if dir.IsDir() && dir.Name()[0] == '_' {
-			err := filepath.Walk(filepath.Join(args.JekyllDir, dir.Name()), func(path string, info os.FileInfo, err error) error {
+		for _, d := range dirs {
+			if !d.IsDir() || d.Name()[0] != '_' {
+				continue
+			}
+			err := filepath.WalkDir(filepath.Join(dir, d.Name()), func(path string, e fs.DirEntry, err error) error {
 				if err != nil {
-					return err
+					if !yield("", err) {
+						return filepath.SkipAll
+					}
+					return nil
 				}
-
 				if filepath.Ext(path) == ".md" {
-					files = append(files, path)
+					if !yield(path, nil) {
+						return filepath.SkipAll
+					}
 				}
-
 				return nil
 			})
-
 			if err != nil {
-				return nil, err
+				if !yield("", err) {
+					return
+				}
 			}
 		}
 	}
-
-	return files, nil
 }
 
 func getOutputPaths(file string, jekyllDir *string, zolaDir *string) (string, string, error) {
@@ -47,17 +51,37 @@ func getOutputPaths(file string, jekyllDir *string, zolaDir *string) (string, st
 		return "", "", err
 	}
 
-	if relPath[0] == '_' {
+	if len(relPath) > 0 && relPath[0] == '_' {
 		relPath = relPath[1:]
 	}
 
-	re := regexp.MustCompile(`\d{4}-\d{2}-\d{2}-`)
-
-	file = filepath.Base(relPath)
+	name := filepath.Base(relPath)
 	dir := filepath.Dir(relPath)
 
-	file = re.ReplaceAllString(file, "")
-	relPath = filepath.Join(dir, file)
+	name = stripDatePrefix(name)
+	relPath = filepath.Join(dir, name)
 
 	return filepath.Join(*zolaDir, "content", relPath), filepath.Join(*zolaDir, "content", dir), nil
+}
+
+// stripDatePrefix removes a leading "YYYY-MM-DD-" prefix from a filename
+// if present.
+func stripDatePrefix(name string) string {
+	if len(name) >= 11 &&
+		isDigits(name[0:4]) && name[4] == '-' &&
+		isDigits(name[5:7]) && name[7] == '-' &&
+		isDigits(name[8:10]) && name[10] == '-' {
+		return name[11:]
+	}
+	return name
+}
+
+// isDigits reports whether every byte in s is an ASCII digit.
+func isDigits(s string) bool {
+	for i := range len(s) {
+		if s[i] < '0' || s[i] > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
 }

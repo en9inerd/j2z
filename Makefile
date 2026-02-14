@@ -14,8 +14,14 @@ build:
 build-prod:
 	bash scripts/build.sh
 
+test:
+	$(GO) test -race ./...
+
+vet:
+	$(GO) vet ./...
+
 clean:
 	rm -rf $(BUILD_DIR)
 	rm -rf $(DIST_DIR)
 
-.PHONY: all build clean
+.PHONY: all build build-prod test vet clean
