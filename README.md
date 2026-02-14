@@ -27,7 +27,6 @@ j2z --jekyllDir <path> --zolaDir <path> [flags]
 - Warns on unsupported `{% include %}` Liquid tags
 - Normalizes `<!--more-->` summary break tags
 - Concurrent file processing with bounded parallelism
-- Sandboxed filesystem I/O via `os.Root` (prevents path traversal)
 - Structured error reporting with typed errors
 
 ## Requirements:

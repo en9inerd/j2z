@@ -1,9 +1,6 @@
 package args
 
-import (
-	"os"
-	"time"
-)
+import "time"
 
 type Args struct {
 	JekyllDir     string
@@ -13,5 +10,4 @@ type Args struct {
 	Tz            *time.Location
 	Aliases       bool
 	DryRun        bool
-	OutputRoot    *os.Root
 }

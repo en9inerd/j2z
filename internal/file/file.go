@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -154,16 +153,6 @@ func (f *JekyllMarkdownFile) Save(a *args.Args) error {
 	if a.DryRun {
 		slog.Info("dry-run: would write", "path", outputFilePath, "size", len(combined))
 		return nil
-	}
-
-	if a.OutputRoot != nil {
-		relFile, _ := filepath.Rel(a.ZolaDir, outputFilePath)
-		relDir, _ := filepath.Rel(a.ZolaDir, outputDirPath)
-		if err := a.OutputRoot.MkdirAll(relDir, 0755); err != nil {
-			return err
-		}
-		slog.Debug("writing file (sandboxed)", "path", relFile)
-		return a.OutputRoot.WriteFile(relFile, []byte(combined), 0644)
 	}
 
 	if err := os.MkdirAll(outputDirPath, 0755); err != nil {

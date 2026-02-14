@@ -88,20 +88,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if !cliArgs.DryRun {
-		if err := os.MkdirAll(cliArgs.ZolaDir, 0755); err != nil {
-			slog.Error("cannot create Zola directory", "dir", cliArgs.ZolaDir, "err", err)
-			os.Exit(1)
-		}
-		outputRoot, err := os.OpenRoot(cliArgs.ZolaDir)
-		if err != nil {
-			slog.Error("cannot open Zola directory", "dir", cliArgs.ZolaDir, "err", err)
-			os.Exit(1)
-		}
-		defer outputRoot.Close()
-		cliArgs.OutputRoot = outputRoot
-	}
-
 	var (
 		wg       sync.WaitGroup
 		total    atomic.Int64
@@ -137,7 +123,7 @@ func main() {
 
 	t := int(total.Load())
 	failed := int(errCount.Load())
-	slog.Info("conversion complete", "total", t, "succeeded", t-failed, "failed", failed)
+	slog.Info("conversion complete", "total", t, "succeeded", max(0, t-failed), "failed", failed)
 
 	if failed > 0 {
 		os.Exit(1)
