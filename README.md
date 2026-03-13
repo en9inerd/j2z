@@ -31,3 +31,7 @@ j2z --jekyllDir <path> --zolaDir <path> [flags]
 
 ## Requirements:
 - Go 1.26+
+
+## License
+
+MIT
