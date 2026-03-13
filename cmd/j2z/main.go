@@ -30,21 +30,27 @@ func splitFlag(flagValue string) []string {
 }
 
 func versionString() string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "j2z version %s", version)
+	var revision, buildTime string
 	if info, ok := debug.ReadBuildInfo(); ok {
 		for _, kv := range info.Settings {
 			switch kv.Key {
 			case "vcs.revision":
 				if len(kv.Value) >= 7 {
-					fmt.Fprintf(&b, " (%s)", kv.Value[:7])
+					revision = kv.Value[:7]
 				}
 			case "vcs.time":
-				fmt.Fprintf(&b, " built %s", kv.Value)
+				buildTime = kv.Value
 			}
 		}
 	}
-	return b.String()
+	s := "j2z version " + version
+	if revision != "" {
+		s += " (" + revision + ")"
+	}
+	if buildTime != "" {
+		s += " built " + buildTime
+	}
+	return s
 }
 
 func main() {
