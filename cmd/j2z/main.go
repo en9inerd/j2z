@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/en9inerd/go-pkgs/flagpair"
 	"github.com/en9inerd/j2z/internal/args"
 	"github.com/en9inerd/j2z/internal/errs"
 	"github.com/en9inerd/j2z/internal/file"
@@ -54,43 +55,51 @@ func versionString() string {
 }
 
 func main() {
-	jekyllDirFlag := flag.String("jekyllDir", "", "Path to the Jekyll directory")
-	zolaDirFlag := flag.String("zolaDir", "", "Path to the Zola directory")
-	taxonomiesFlag := flag.String("taxonomies", "tags,categories", "Optional comma-separated list of taxonomies")
-	extraKeysFlag := flag.String("extraRootKeys", "", "Optional comma-separated list of additional root front matter keys")
-	tzNameFlag := flag.String("tz", "", "Optional timezone name")
-	aliasesFlag := flag.Bool("aliases", false, "Enable aliases in the front matter")
-	dryRunFlag := flag.Bool("dry-run", false, "Preview conversion without writing files")
-	versionFlag := flag.Bool("version", false, "Print the version number")
-	verboseFlag := flag.Bool("verbose", false, "Enable verbose logging")
-	quietFlag := flag.Bool("quiet", false, "Suppress all output except errors")
-	flag.Parse()
+	r := flagpair.New("j2z")
+	jekyllDir := r.String("jekyll-dir", "j", "", "Path to the Jekyll directory")
+	zolaDir := r.String("zola-dir", "z", "", "Path to the Zola directory")
+	taxonomies := r.String("taxonomies", "", "tags,categories", "Optional comma-separated list of taxonomies")
+	extraKeys := r.String("extra-root-keys", "", "", "Optional comma-separated list of additional root front matter keys")
+	tzName := r.String("tz", "", "", "Optional timezone name")
+	aliases := r.Bool("aliases", "", false, "Enable aliases in the front matter")
+	dryRun := r.Bool("dry-run", "", false, "Preview conversion without writing files")
+	showVersion := r.Bool("version", "", false, "Print the version number")
+	verbose := r.Bool("verbose", "v", false, "Enable verbose logging")
+	quiet := r.Bool("quiet", "q", false, "Suppress all output except errors")
+
+	if err := r.Parse(os.Args[1:]); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return
+		}
+		slog.Error("invalid arguments", "err", err)
+		os.Exit(1)
+	}
 
 	switch {
-	case *quietFlag:
+	case *quiet:
 		applog.Level.Set(slog.LevelWarn)
-	case *verboseFlag:
+	case *verbose:
 		applog.Level.Set(slog.LevelDebug)
 	}
 
-	if *versionFlag {
+	if *showVersion {
 		fmt.Println(versionString())
 		os.Exit(0)
 	}
 
 	cliArgs := args.Args{
-		JekyllDir:     *jekyllDirFlag,
-		ZolaDir:       *zolaDirFlag,
-		Taxonomies:    splitFlag(*taxonomiesFlag),
-		ExtraRootKeys: splitFlag(*extraKeysFlag),
-		Aliases:       *aliasesFlag,
-		DryRun:        *dryRunFlag,
-		Tz:            timezone.GetTimeZone(*tzNameFlag),
+		JekyllDir:     *jekyllDir,
+		ZolaDir:       *zolaDir,
+		Taxonomies:    splitFlag(*taxonomies),
+		ExtraRootKeys: splitFlag(*extraKeys),
+		Aliases:       *aliases,
+		DryRun:        *dryRun,
+		Tz:            timezone.GetTimeZone(*tzName),
 	}
 
 	if cliArgs.JekyllDir == "" || cliArgs.ZolaDir == "" {
-		slog.Error("both --jekyllDir and --zolaDir must be provided")
-		flag.Usage()
+		slog.Error("both --jekyll-dir and --zola-dir must be provided")
+		r.FlagSet().Usage()
 		os.Exit(1)
 	}
 
