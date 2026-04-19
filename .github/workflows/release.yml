@@ -68,3 +68,13 @@ jobs:
           tag_name: v${{ steps.semrel.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Homebrew formula
+        if: steps.semrel.outputs.version != ''
+        env:
+          TAP_REPO_TOKEN: ${{ secrets.TAP_REPO_TOKEN }}
+        run: |
+          bash scripts/update-homebrew-formula.sh \
+            "${{ steps.semrel.outputs.version }}" \
+            dist \
+            "https://x-access-token:${TAP_REPO_TOKEN}@github.com/en9inerd/homebrew-tap.git"

@@ -2,6 +2,24 @@
 
 Simple CLI tool to convert Jekyll markdown posts to Zola markdown posts.
 
+## Installation
+
+### Homebrew (macOS / Linux)
+
+```
+brew install en9inerd/tap/j2z
+```
+
+### Pre-built binaries
+
+Download from the [Releases](https://github.com/en9inerd/j2z/releases) page.
+
+### From source
+
+```
+go install github.com/en9inerd/j2z/cmd/j2z@latest
+```
+
 ## Usage:
 
 ```sh
